@@ -17,14 +17,14 @@ class Tail;
 class Knot {
     public:
         Knot(std::string n): name{n}{};
-        Pos getPos() {return pos;};
+        Pos getPos() const {return pos;};
         void addPos();
-        int getNrOfVisited() {return visited.size();};
+        int getNrOfVisited() const {return visited.size();};
         virtual void move(char dir, int steps) = 0;
         void setTail(Tail* t) {tail = t;};
         Tail* getTail() {return tail;};
-        std::string getName()   {return name;};
-    
+        std::string getName() const  {return name;};
+        Pos getVisited(int index) const  {return visited[index];};
     protected:
         Tail* tail{NULL};
         Pos pos;

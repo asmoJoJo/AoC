@@ -69,6 +69,12 @@ void Directory::mkdir(const std::string dName) {
     std::cout << "Directory '" << dName << "' succesfully created.\n";
 }
 
+void Directory::deleteDir() {
+    for(Directory* d : subDirectories)  {
+        delete d;
+    }
+}
+
 int computeSize(Directory* dir)    {
     // This function must only be called once,
     // after all files and directories are created.

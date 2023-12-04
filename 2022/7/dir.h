@@ -27,7 +27,9 @@ struct Directory {
     void ls(TokenStream& ts);
     void touch(const int size, const std::string& fName);
     void mkdir(const std::string dName);
-    ~Directory(){delete this;};
+    void deleteDir();
+
+    ~Directory(){deleteDir();};
 };
 
 int computeSize(Directory* dir);

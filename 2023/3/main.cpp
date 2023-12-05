@@ -4,9 +4,24 @@
 #include <sstream>
 #include <vector>
 
-int findPartNumbers(const std::vector<std::string>& vs, int x, int y)
+int parseNumber(const std::vector<std::string>& vs, int x, int y)
 {
-    int sum = 0, number = 0;
+    int index = 1, number = 0;
+    char c = vs[y][x-index];
+    while(isdigit(c))
+    {
+        ++index;
+        c = vs[y][x-index];
+    }
+    std::stringstream ss{vs[y].substr(x - (index - 1))};
+    ss >> number;
+    return number;
+}
+
+int findPartNumbers(const std::vector<std::string>& vs, int x, int y, bool pt2 = false)
+{
+    bool pt1 = !pt2;
+    int sum = 0, number = 0, number2 = 0;
     bool digitFound = false;
     for(int i = y - 1; i < y + 2; ++i)
     {
@@ -17,19 +32,19 @@ int findPartNumbers(const std::vector<std::string>& vs, int x, int y)
                 if(!digitFound)
                 {
                     digitFound = true;
-                    int index = 1;
-                    char c = vs[i][j-index];
-                    while(isdigit(c))
+                    if(!number)
+                        number = parseNumber(vs, j, i);
+                    else if(!number2)
+                        number2 = parseNumber(vs, j, i);
+                    else if(pt2)
+                        return 0;
+
+                    if(pt1)
                     {
-                        ++index;
-                        c = vs[i][j-index];
+                        sum += number;
+                        number = 0;
                     }
-                    std::stringstream ss{vs[i].substr(j - (index -1))};
-                    ss >> number;
-                    sum += number;
                 }
-                else
-                    continue;
             }
             else
                 digitFound = false;
@@ -37,7 +52,10 @@ int findPartNumbers(const std::vector<std::string>& vs, int x, int y)
         digitFound = false;
     }
 
-    return sum;
+    if(pt1)
+        return sum;
+    else
+        return number * number2;
 }
 
 int main(void)
@@ -63,8 +81,13 @@ int main(void)
     {
         for(int j = 0; j < vs[i].length(); ++j)
         {
-            if(ispunct(vs[i][j]) && vs[i][j] != '.')
-                sum += findPartNumbers(vs, j, i);
+            /* ===== PART I ===== */
+            // if(ispunct(vs[i][j]) && vs[i][j] != '.')
+            //     sum += findPartNumbers(vs, j, i);
+
+            /* ===== PART II ===== */
+            if(vs[i][j] == '*')
+                sum += findPartNumbers(vs, j, i, true);
         }
     }
 

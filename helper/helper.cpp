@@ -21,9 +21,9 @@ std::ifstream getIfsStream(const std::string& filename)
 }
 
 template <class T>
-void printVec(const std::vector<T>& v)
+void printVec(const std::vector<T>& v, char delim)
 {
     for(const T& t : v)
-        std::cout << t << '\n';
+        std::cout << t << delim;
     std::cout << std::endl; 
 }

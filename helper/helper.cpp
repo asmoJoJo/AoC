@@ -25,5 +25,4 @@ void printVec(const std::vector<T>& v, char delim)
 {
     for(const T& t : v)
         std::cout << t << delim;
-    std::cout << std::endl; 
 }

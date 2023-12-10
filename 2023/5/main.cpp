@@ -2,12 +2,18 @@
 
 #include <sstream>
 
-struct Pair
+class Pair
 {
+public:
     int64_t s, r;
 
     Pair(int64_t start, int64_t range) : s{start}, r{range} {}
+
 };
+bool operator==(Pair& a, Pair& b)    { return (a.s == b.s && a.r == b.r); }
+bool operator!=(Pair& a, Pair& b)    { return !(a == b); }
+bool operator!(const Pair& p)   { return !(p.s || p.r); }
+std::ostream& operator<<(std::ostream& os, const Pair& p)   { return os << "[" << p.s << "," << p.r << "]"; }
 
 
 struct Map
@@ -36,24 +42,42 @@ struct Map
             int64_t destination = ranges[i];
             int64_t source = ranges[i + 1];
             int64_t range = ranges[i + 2];
-        
-            if((p.s >= source) && (p.s < (source + range)))       // Seed range starts within in mapping range and ends either before or after mapping range
-            {
-                if(p.r > range)
-                    p.r = (range - (p.s - source));
-                p.s = p.s - source + destination;
-                return p;
-            }
-            // else if((p.s < source) && ((p.s + p.r) < (source + range)))    // Seed range starts before, but ends within mapping range
-            // {
-            //     int newAmount = p.r - (source - p.s);
-            //     p.r = p.r - newAmount;
-            //     return {destination, newAmount};
-            // }
-            // else if((p.s < source) && ((p.s + p.r) >= (source + range)))       // Seed range starts before and ends after mapping range
-            // {
 
-            // }
+            if(p.s >= source && p.s < source + range)   // start of p is within the range
+            {
+                Pair prev = p;
+                p.s = destination + (p.s - source);
+                if(prev.s + p.r <= source + range)         // p falls completely within range
+                    break;
+                else if(prev.s + p.r > source + range)     // end of p is outside range
+                {
+                    p.r = range - (prev.s - source);
+                    return {prev.s + p.r, prev.r - p.r};
+                }
+            }
+            else if(p.s < source)                       // p starts before the range
+            {
+                if(p.s + p.r < source)                                  // p ends before range
+                    break;
+
+                Pair prev = p;
+                p.s = source;
+                if(prev.s + p.r >= source && prev.s + p.r < source + range)   // p ends within range
+                {
+                    // TODO
+                    p.r = prev.r - (source - prev.s);       // <===== BUG ?!?!?!?!??!
+
+                    prev.r -= p.r;
+                    return {prev.s, prev.r};
+                }
+                // else if(prev.s + p.r >= source + range)                    // p ends after range
+                // {
+                //     // TODO
+                //     p.r = range;
+                //     break;
+                // }
+            }
+            
         }
         return {0,0};
     }
@@ -120,37 +144,38 @@ std::vector<int64_t> mapSeedsToLocationsPart2(std::vector<Pair>& seeds, std::vec
 {
     std::vector<int64_t> locations;
 
-    for(const Pair& p : seeds)
-        std::cout << "[" << p.s << "," << p.r << "] ";
+    std::cout << "Seeds: ";
+    printVec(seeds, ' ');
     std::cout << "\n\n";
 
-    for(Map& m : maps)
+    for(Map m : maps)
     {
-        size_t size = seeds.size();
+        std::cout << m.name << ":\n";
 
-        std::cout << m.name << '\n';
-
-        for(size_t i = 0; i < size; ++i)
+        for(size_t i = 0; i < seeds.size(); ++i)
         {
-            int64_t prevStart = seeds[i].s, prevRange = seeds[i].r;
+            Pair prev = seeds[i], &curr = seeds[i];
+            Pair newPair = m.mapRange(curr);            // newPair is always the part that's outside of the range 
 
-            Pair p = m.mapRange(seeds[i]);
-            if(p.r < prevRange)  // if a range had to broken up, we put the remainder at the end of seeds
+            if(!newPair)
+                continue;
+
+            if(prev.r > curr.r)
             {
-                if(p.s != prevStart)   // the range is broken up starting at the front
+                if(newPair.r + curr.r == prev.r)        // the range is cut in half
                 {
-                    int64_t newRange = prevRange - p.r;
-                    int64_t newStart = prevStart + p.r;
+                    seeds.push_back(newPair);
+                }
+                else if(newPair.r + curr.r < prev.r)    // the range is cut in three; newPair is the part before the range, curr the part within range
+                                                        // calculate the part that comes after the range
+                {
+                    int64_t newRange = prev.r - (newPair.r + curr.r);
+                    int64_t newStart = curr.s + curr.r;
                     seeds.push_back({newStart, newRange});
                 }
-                else if(p.s == prevStart)
-                {
-                    seeds.push_back(p);
-                }
             }
-                for(const Pair& p : seeds)
-        std::cout << "[" << p.s << "," << p.r << "] ";
         }
+        printVec(seeds, ' ');
         std::cout << "\n\n";
     }
 

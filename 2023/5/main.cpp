@@ -48,40 +48,44 @@ struct Map
             int64_t source = ranges[i + 1];
             int64_t range = ranges[i + 2];
 
-            if(p.s >= source && p.s < source + range)   // start of p is within the range
-            {
-                Pair prev = p;
-                p.s = destination + (p.s - source);
-                if(prev.s + p.r <= source + range)         // p falls completely within range
-                    break;
-                else if(prev.s + p.r > source + range)     // end of p is outside range
-                {
-                    p.r = range - (prev.s - source);
-                    return {prev.s + p.r, prev.r - p.r};
-                }
-            }
-            else if(p.s < source)                       // p starts before the range
-            {
-                if(p.s + p.r < source)                                  // p ends before range
-                    break;
+            Pair prev = p;
 
-                Pair prev = p;
-                p.s = source;
-                if(prev.s + p.r >= source && prev.s + p.r < source + range)   // p ends within range
-                {
-                    p.r = prev.r - (source - prev.s);
-                    prev.r -= p.r;
-                    return {prev.s, prev.r};
-                }
-                else if(prev.s + p.r >= source + range)                    // p ends after range
-                {
-                    // TODO
-                    p.r = range;
-                    p.s = source;
-                    return {prev.s, source - prev.s};
-                }
+            bool startsInRange = (p.s >= source) && (p.s < (source + range));
+            bool endsInRange = (p.s + p.r) <= (source + range);
+            bool endsAfterRange = (p.s + p.r) > (source + range);
+
+            bool startsBeforeRange = p.s < source;
+            bool fallsWithinRange = (p.s + p.r) >= source;
+
+            if(startsInRange && endsInRange)
+            {
+                std::cout << "Start of p is within the range!\t" << "dest: " << destination << " source: " << source << " range: " << range << "\n";
+                
+                p.s = destination + (p.s - source);
+                return {0,0};
             }
-            
+            else if(startsInRange && endsAfterRange)
+            {
+                std::cout << "Start of p is within the range!\t" << "dest: " << destination << " source: " << source << " range: " << range << "\n";
+                p.r = range - (prev.s - source);
+                return {prev.s + p.r, prev.r - p.r};
+            }
+            else if(startsBeforeRange && fallsWithinRange && endsInRange)
+            {
+                std::cout << "p starts before the range!\n" << "dest: " << destination << "\tsource: " << source << "\trange: " << range << "\n";
+
+                p.s = source;
+                p.r = prev.r - (source - prev.s);
+                prev.r -= p.r;
+                return {prev.s, prev.r};
+            }
+            else if(startsBeforeRange && fallsWithinRange && endsAfterRange)
+            {
+                std::cout << "p starts before the range!\n" << "dest: " << destination << "\tsource: " << source << "\trange: " << range << "\n";
+                p.r = range;
+                p.s = source;
+                return {prev.s, source - prev.s};
+            }           
         }
         return {0,0};
     }
@@ -148,21 +152,21 @@ std::vector<Pair> findLocationForSeedRanges(std::vector<Pair>& seeds, std::vecto
 {
     std::vector<Pair> newSeedRanges;
 
-    for(Map m : maps)
+    for(int index = 0; index < maps.size(); ++index)
     {
+        Map m = maps[index];
+        Map* pNext;
+        if(index < maps.size() - 1)
+            pNext = &maps[index+1];
+
         std::cout << m.name << ":\n";
 
         for(size_t i = 0; i < seeds.size(); ++i)
         {
+            Pair &curr = seeds[i];
             if(seeds[i].m && seeds[i].m->name == m.name)
-            // this is the last performed map, so starting next iteration we can start mapping this range again
             {
-                seeds[i].m = nullptr;
-                continue;
-            }
-            if(!(seeds[i].m))
-            {
-                Pair prev = seeds[i], &curr = seeds[i];
+                Pair prev = seeds[i];
                 Pair newPair = m.mapRange(curr);            // newPair is always the part that's outside of the range 
 
                 if(!newPair)
@@ -170,7 +174,7 @@ std::vector<Pair> findLocationForSeedRanges(std::vector<Pair>& seeds, std::vecto
 
                 if(prev.r > curr.r)
                 {
-                    newPair.m = &m;                         // while adding new seed ranges, we have to remember which maps were already performed. We do that by adding a pointer to the last performed map
+                    newPair.m = &m;                         // while adding new seed ranges, we have to remember which maps were already performed. That is the map before the current one
                     if(newPair.r + curr.r == prev.r)        // the range is cut in half
                     {
                         newSeedRanges.push_back(newPair);
@@ -185,6 +189,7 @@ std::vector<Pair> findLocationForSeedRanges(std::vector<Pair>& seeds, std::vecto
                     }
                 }
             }
+            curr.m = pNext;
         }
         printVec(seeds, ' ');
         std::cout << "\n\n";
@@ -195,13 +200,14 @@ std::vector<Pair> findLocationForSeedRanges(std::vector<Pair>& seeds, std::vecto
 
 std::vector<int64_t> mapSeedsToLocationsPart2(std::vector<Pair>& seeds, std::vector<Map>& maps)
 {
+    for(Pair& seed : seeds)
+        seed.m = &maps[0];
+
     std::vector<int64_t> locations;
 
     std::cout << "Seeds: ";
     printVec(seeds, ' ');
     std::cout << "\n\n";
-
-    // Adding elements to vector while looping over said vector created nasty bug
 
     std::cout << "ROUND 1:\n";
     std::vector<Pair> splitSeeds = findLocationForSeedRanges(seeds, maps), tmp;
@@ -211,12 +217,17 @@ std::vector<int64_t> mapSeedsToLocationsPart2(std::vector<Pair>& seeds, std::vec
 
     int round = 2;
 
+    // Adding elements to vector while looping over said vector created nasty bug
+    // Now we add new ranges to new vector and keep repeating this untill all ranges are handleds
     while(splitSeeds.size())
     {
         std::cout << "\nROUND " << round << ":\n";
         tmp = findLocationForSeedRanges(splitSeeds, maps);
         for(size_t i = 0; i < splitSeeds.size(); ++i)
-            locations.push_back(splitSeeds[i].s);
+        {
+            if(splitSeeds[i].r > 0)
+                locations.push_back(splitSeeds[i].s);
+        }
         splitSeeds = tmp;
         ++round;
     }
@@ -244,5 +255,5 @@ int main(void)
     for(int64_t i : locations)
         min = ((min) < (i) ? (min) : (i));
 
-    std::cout << min << std::endl;
+    std::cout << '\n' << min << std::endl;
 }
